@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel-app
+    restart: unless-stopped
+    working_dir: /var/www/laravel_app
+    command: bash -c "php-fpm & npm run dev"
+    volumes:
+      - ./laravel_app/app:/var/www/laravel_app/app:cached
+      - ./laravel_app/config:/var/www/laravel_app/config:cached
+      - ./laravel_app/database/migrations:/var/www/laravel_app/database/migrations:cached
+      - ./laravel_app/database/seeders:/var/www/laravel_app/database/seeders:cached
+      - ./laravel_app/public:/var/www/laravel_app/public:cached
+      - ./laravel_app/resources:/var/www/laravel_app/resources:cached
+      - ./laravel_app/routes:/var/www/laravel_app/routes:cached
+      - ./laravel_app/tests:/var/www/laravel_app/tests:cached
+      - ./laravel_app/.env:/var/www/laravel_app/.env:cached
+      - ./laravel_app/composer.json:/var/www/laravel_app/composer.json:cached
+      - ./laravel_app/composer.lock:/var/www/laravel_app/composer.lock:cached
+      - ./laravel_app/package.json:/var/www/laravel_app/package.json:cached
+      - ./laravel_app/artisan:/var/www/laravel_app/artisan:cached
+      - ./laravel_app/bootstrap:/var/www/laravel_app/bootstrap:cached
+      - ./laravel_app/vite.config.js:/var/www/laravel_app/vite.config.js:cached
+      # - /var/www/laravel_app/vendor
+      # - /var/www/laravel_app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - laravel-network
+
+  nginx:
+    image: nginx:1.25.4-alpine
+    container_name: laravel-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./laravel_app/app:/var/www/laravel_app/app:cached
+      - ./laravel_app/config:/var/www/laravel_app/config:cached
+      - ./laravel_app/database/migrations:/var/www/laravel_app/database/migrations:cached
+      - ./laravel_app/database/seeders:/var/www/laravel_app/database/seeders:cached
+      - ./laravel_app/public:/var/www/laravel_app/public:cached
+      - ./laravel_app/resources:/var/www/laravel_app/resources:cached
+      - ./laravel_app/routes:/var/www/laravel_app/routes:cached
+      - ./laravel_app/tests:/var/www/laravel_app/tests:cached
+      - ./laravel_app/.env:/var/www/laravel_app/.env:cached
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d/
+      - ./laravel_app/artisan:/var/www/laravel_app/artisan:cached
+      - ./laravel_app/bootstrap:/var/www/laravel_app/bootstrap:cached
+    networks:
+      - laravel-network
+    depends_on:
+      - app
+
+  db:
+    image: postgres:14.11-alpine
+    container_name: laravel-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - laravel-network
+
+networks:
+  laravel-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local 
